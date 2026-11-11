@@ -1,0 +1,70 @@
+if not game:IsLoaded() then game.Loaded:Wait() end
+local env = (type(getgenv) == "function" and getgenv()) or _G
+if env.Aurora or env.AuroraGate then return end
+env.AuroraGate = true
+local ok, err = pcall(function()
+	local WARN = "Unlisted, unsupported or unknown executors may cause lag, crashes, bugs or other issues."
+	local blocked = { solara = true, xeno = true }
+	local listed = { volt = true, potassium = true, real = true }
+	local function executor()
+		local getters = { identifyexecutor, getexecutorname }
+		for index = 1, 2 do
+			local fn = getters[index]
+			if type(fn) == "function" then
+				local good, name = pcall(fn)
+				if good and type(name) == "string" and name ~= "" then return name end
+			end
+		end
+		return "Unknown"
+	end
+	local function consented()
+		return type(isfile) == "function" and pcall(isfile, "Aurora/consent.txt") and isfile("Aurora/consent.txt")
+	end
+	local function remember()
+		pcall(function()
+			if type(makefolder) == "function" and type(isfolder) == "function" and not isfolder("Aurora") then makefolder("Aurora") end
+			if type(writefile) == "function" then writefile("Aurora/consent.txt", "accepted") end
+		end)
+	end
+	local name = executor()
+	local key = name:lower():match("%a+") or ""
+	if blocked[key] then
+		game:GetService("Players").LocalPlayer:Kick(name .. " is not supported. You can view the supported executors on the Aurora Discord server.")
+		return
+	end
+	if not listed[key] and not consented() then
+		local accepted = nil
+		if type(messagebox) == "function" then
+			local shown, answer = pcall(messagebox, WARN, "Aurora", 0x40031)
+			if shown then accepted = answer == 1 end
+		end
+		if accepted == nil then
+			local answered = Instance.new("BindableEvent")
+			local choice = Instance.new("BindableFunction")
+			choice.OnInvoke = function(button) answered:Fire(button == "Continue") end
+			local sent = false
+			for _ = 1, 20 do
+				local ok2 = pcall(function()
+					game:GetService("StarterGui"):SetCore("SendNotification", {
+						Title = "Aurora",
+						Text = WARN,
+						Duration = 1e6,
+						Button1 = "Continue",
+						Button2 = "Cancel",
+						Callback = choice,
+					})
+				end)
+				if ok2 then sent = true break end
+				task.wait(0.5)
+			end
+			if sent then accepted = answered.Event:Wait() end
+		end
+		if not accepted then return end
+		remember()
+	end
+	if game.GameId ~= 6035872082 then return end
+	loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/bff8942580fb1209010cc5ebcc5747b9.lua"), "Aurora")()
+end)
+env.AuroraGate = nil
+if not ok then warn("[Aurora] " .. tostring(err)) end
+
